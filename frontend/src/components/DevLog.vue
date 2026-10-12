@@ -15,19 +15,20 @@ const emit = defineEmits(['navigate-home', 'toggle-theme'])
 <template>
     <div class="devlog-page min-vh-100 d-flex flex-column bg-body text-body">
         <!-- DevLog Navbar -->
-        <header class="navbar border-bottom px-4 py-3 bg-body sticky-top">
+        <header class="navbar border-bottom px-2 px-sm-4 py-2 py-sm-3 bg-body sticky-top">
             <div class="container d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-2 gap-sm-3">
                     <button
                         class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
                         @click="emit('navigate-home')"
                         title="Return to application"
                     >
                         <span>&larr;</span>
-                        <span>{{ isSignedIn ? 'Back to Notes' : 'Back to Home' }}</span>
+                        <span class="d-none d-sm-inline">{{ isSignedIn ? 'Back to Notes' : 'Back to Home' }}</span>
+                        <span class="d-sm-none">Back</span>
                     </button>
                     <span
-                        class="navbar-brand fw-bold fs-5 mb-0 text-decoration-none cursor-pointer"
+                        class="navbar-brand fw-bold fs-6 fs-sm-5 mb-0 text-decoration-none cursor-pointer"
                         role="button"
                         @click="emit('navigate-home')"
                     >
@@ -35,7 +36,7 @@ const emit = defineEmits(['navigate-home', 'toggle-theme'])
                     </span>
                 </div>
 
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center gap-1 gap-sm-2">
                     <button
                         class="btn btn-sm btn-outline-secondary"
                         :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
@@ -56,42 +57,81 @@ const emit = defineEmits(['navigate-home', 'toggle-theme'])
         </header>
 
         <!-- Main DevLog Content -->
-        <main class="flex-grow-1 py-5">
+        <main class="flex-grow-1 py-4 py-sm-5">
             <div class="container" style="max-width: 860px;">
                 <!-- Header / Hero section -->
-                <div class="text-center mb-5">
+                <div class="text-center mb-4 mb-sm-5">
                     <div class="d-inline-flex align-items-center gap-2 mb-2">
                         <span class="badge text-bg-primary-subtle text-primary-emphasis px-3 py-2 rounded-pill fs-6 fw-semibold">
                             📋 Product Changelog
                         </span>
                         <span class="badge text-bg-secondary-subtle text-secondary-emphasis px-3 py-2 rounded-pill fs-6">
-                            v0.2.0
+                            v0.2.1
                         </span>
                     </div>
-                    <h1 class="display-4 fw-bold mt-2 mb-3 tracking-tight">Developer Log</h1>
+                    <h1 class="display-5 display-md-4 fw-bold mt-2 mb-3 tracking-tight">Developer Log</h1>
                     <p class="lead text-secondary mx-auto" style="max-width: 650px;">
                         Track the ongoing evolution of Paper Note. Below you will find our monthly release notes, newly shipped features, and improvements.
                     </p>
                 </div>
 
                 <!-- Timeline Container -->
-                <div class="devlog-timeline d-flex flex-column gap-5">
+                <div class="devlog-timeline d-flex flex-column gap-4 gap-sm-5">
                     <!-- October 2026 Release -->
                     <article class="card border shadow-sm rounded-4 overflow-hidden">
-                        <div class="card-header bg-body-tertiary border-bottom px-4 py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div class="card-header bg-body-tertiary border-bottom px-3 px-sm-4 py-3 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
                             <div>
                                 <div class="d-flex align-items-center gap-2">
                                     <h3 class="h4 fw-bold mb-0">October 2026</h3>
                                     <span class="badge text-bg-success rounded-pill px-2 py-1">Latest Update</span>
                                 </div>
-                                <small class="text-secondary">Release v0.2.0 • Formatting, Productivity &amp; Health Monitoring</small>
+                                <small class="text-secondary">Release v0.2.1 • Mobile-First UI, Rich Text Formatting &amp; Monitoring</small>
                             </div>
                             <span class="text-secondary small">October 12, 2026</span>
                         </div>
-                        <div class="card-body p-4">
+                        <div class="card-body p-3 p-sm-4">
                             <p class="text-secondary mb-4">
-                                This month brings powerful text customization tools, automated background saving with real-time feedback, and system health checks to keep your writing safe and flexible.
+                                This month brings a dedicated Mobile-First UI redesign, powerful rich text customization tools, automated background saving with real-time feedback, and system health checks to keep your writing safe, portable, and distraction-free across all devices.
                             </p>
+
+                            <!-- Mobile-First UI -->
+                            <div class="mb-4">
+                                <h5 class="fw-bold d-flex align-items-center gap-2 text-primary">
+                                    <span>📱</span> Mobile-First UI
+                                </h5>
+                                <ul class="list-unstyled ps-3 mt-2 text-secondary d-flex flex-column gap-2">
+                                    <li class="d-flex align-items-start gap-2">
+                                        <span class="text-success fw-bold">✓</span>
+                                        <div>
+                                            <strong class="text-body">Full-Screen Mobile Notes Tab &amp; Toggle:</strong>
+                                            Added a dedicated <code>☰ Notes</code> button in the note title bar for small screens. Tapping it opens the notes drawer full-screen, allowing easy browsing, organization, and switching.
+                                        </div>
+                                    </li>
+                                    <li class="d-flex align-items-start gap-2">
+                                        <span class="text-success fw-bold">✓</span>
+                                        <div>
+                                            <strong class="text-body">Instant Focus Return:</strong>
+                                            Tapping any note or clicking <code>+ New Note</code> automatically dismisses the notes drawer, smoothly returning full-screen space to the editor for distraction-free note writing. Includes a dedicated <code>✕</code> close button to exit without switching.
+                                        </div>
+                                    </li>
+                                    <li class="d-flex align-items-start gap-2">
+                                        <span class="text-success fw-bold">✓</span>
+                                        <div>
+                                            <strong class="text-body">Single-Row Touch-Scrollable Toolbar:</strong>
+                                            Formatting controls now glide smoothly in a horizontal, single-row touch-scrollable bar on mobile viewports. This saves up to 120px of vertical space otherwise lost to keyboard and wrapped toolbars.
+                                        </div>
+                                    </li>
+                                    <li class="d-flex align-items-start gap-2">
+                                        <span class="text-success fw-bold">✓</span>
+                                        <div>
+                                            <strong class="text-body">Touch Sizing &amp; Viewport Zoom Guard:</strong>
+                                            Enlarged touch targets for fingers, 16px base editor font size preventing unwanted iOS Safari auto-zooming, and global overflow guards eliminating horizontal jitter.
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <hr class="my-4 opacity-25">
 
                             <!-- Feature 1: Rich Text Customization -->
                             <div class="mb-4">

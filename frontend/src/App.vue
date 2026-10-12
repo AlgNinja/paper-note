@@ -19,6 +19,15 @@ const hasClerkKey = computed(() => {
 const notes = ref([])
 const selectedNote = ref(null)
 const theme = ref(localStorage.getItem('theme') || 'light')
+const isMobileNotesOpen = ref(false)
+
+function toggleMobileNotes() {
+    isMobileNotesOpen.value = !isMobileNotesOpen.value
+}
+
+function closeMobileNotes() {
+    isMobileNotesOpen.value = false
+}
 
 // Route/View management
 const currentView = ref(
@@ -87,6 +96,7 @@ async function getNotes() {
                 selectedNote.value = notes.value[0]
             } else {
                 selectedNote.value = null
+                isMobileNotesOpen.value = true
             }
         }
     } catch (e) {
@@ -96,6 +106,7 @@ async function getNotes() {
 
 function selectNote(note) {
     selectedNote.value = note
+    closeMobileNotes()
 }
 
 function updateContent(content) {
@@ -159,6 +170,7 @@ async function createNote() {
             notes.value.unshift(newNote)
             selectedNote.value = newNote
             addToast("Created new note", "info", 2000)
+            closeMobileNotes()
         }
     } catch (e) {
         console.error("Failed to create note:", e)
@@ -277,14 +289,21 @@ onUnmounted(() => {
             :notes="notes"
             :selected-id="selectedNote?.id"
             :theme="theme"
+            :is-open="isMobileNotesOpen"
             @select-note="selectNote"
             @create-note="createNote"
             @delete-note="deleteNote"
             @toggle-theme="toggleTheme"
             @open-devlog="navigateToDevLog"
+            @close-notes="closeMobileNotes"
         />
         <div class="d-flex flex-column flex-grow-1 h-100 overflow-hidden bg-body">
-            <NoteTitle :note="selectedNote" @update-title="updateTitle" @save-note="saveNote(false)" />
+            <NoteTitle
+                :note="selectedNote"
+                @update-title="updateTitle"
+                @save-note="saveNote(false)"
+                @toggle-notes="toggleMobileNotes"
+            />
             <NoteEditor :note="selectedNote" @update-content="updateContent" />
         </div>
     </main>
@@ -292,17 +311,17 @@ onUnmounted(() => {
     <!-- Landing Page (Signed Out) -->
     <div v-else class="landing-page min-vh-100 d-flex flex-column bg-body text-body position-relative">
         <!-- Landing Navbar -->
-        <nav class="navbar border-bottom px-4 py-3 bg-body sticky-top">
+        <nav class="navbar border-bottom px-2 px-sm-4 py-2 py-sm-3 bg-body sticky-top">
             <div class="container-fluid d-flex justify-content-between align-items-center">
-                <span class="navbar-brand fw-bold fs-4 mb-0">📝 Paper Note</span>
-                <div class="d-flex align-items-center gap-2">
+                <span class="navbar-brand fw-bold fs-5 fs-sm-4 mb-0">📝 Paper Note</span>
+                <div class="d-flex align-items-center gap-1 gap-sm-2">
                     <button
                         class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
                         @click="navigateToDevLog"
                         title="View monthly developer log"
                     >
                         <span>📋</span>
-                        <span>Dev Log</span>
+                        <span class="d-none d-sm-inline">Dev Log</span>
                     </button>
                     <button
                         class="btn btn-sm btn-outline-secondary"
@@ -344,21 +363,21 @@ onUnmounted(() => {
                     </button>
                 </div>
 
-                <h1 class="display-3 fw-bold mb-3 tracking-tight">
+                <h1 class="display-5 display-md-3 fw-bold mb-3 tracking-tight">
                     Distraction-Free Note Taking
                 </h1>
-                <p class="lead text-secondary mx-auto mb-5" style="max-width: 620px;">
+                <p class="lead text-secondary mx-auto mb-4 mb-sm-5" style="max-width: 620px;">
                     Capture thoughts, write notes, and organize your work seamlessly. Built with instant syncing, rich text customization, automatic saving, and privacy-first authentication.
                 </p>
 
-                <div class="d-flex justify-content-center gap-3 mb-5">
+                <div class="d-flex justify-content-center gap-2 gap-sm-3 mb-5 flex-wrap">
                     <SignUpButton mode="modal">
-                        <button class="btn btn-primary btn-lg px-4 py-2 shadow-sm">
+                        <button class="btn btn-primary btn-md btn-sm-lg px-4 py-2 shadow-sm">
                             Get Started Free
                         </button>
                     </SignUpButton>
                     <SignInButton mode="modal">
-                        <button class="btn btn-outline-secondary btn-lg px-4 py-2">
+                        <button class="btn btn-outline-secondary btn-md btn-sm-lg px-4 py-2">
                             Sign In
                         </button>
                     </SignInButton>
@@ -372,7 +391,7 @@ onUnmounted(() => {
                                 <div class="fs-2 mb-2">⚡</div>
                                 <h5 class="card-title fw-bold">Instant &amp; Fast</h5>
                                 <p class="card-text text-secondary small">
-                                    Fast note creation, seamless editing, and minute-by-minute auto-saving so you never lose your work.
+                                     Fast note creation, seamless editing, and minute-by-minute auto-saving so you never lose your work.
                                 </p>
                             </div>
                         </div>
@@ -404,9 +423,9 @@ onUnmounted(() => {
         </main>
 
         <!-- Landing Footer -->
-        <footer class="border-top py-3 text-center text-secondary small bg-body d-flex justify-content-center align-items-center gap-3">
+        <footer class="border-top py-3 px-3 text-center text-secondary small bg-body d-flex flex-column flex-sm-row justify-content-center align-items-center gap-2 gap-sm-3">
             <span>Paper Note &copy; 2026 • Simple, distraction-free notes.</span>
-            <span>&bull;</span>
+            <span class="d-none d-sm-inline">&bull;</span>
             <button class="btn btn-link btn-sm text-secondary text-decoration-none p-0" @click="navigateToDevLog">
                 📋 Dev Log
             </button>
@@ -415,8 +434,8 @@ onUnmounted(() => {
 
     <!-- Non-invasive Toast Notifications Container -->
     <div
-        class="toast-container position-fixed bottom-0 end-0 p-3"
-        style="z-index: 1090; pointer-events: none;"
+        class="toast-container position-fixed bottom-0 end-0 p-2 p-sm-3"
+        style="z-index: 1090; pointer-events: none; max-width: 100vw;"
     >
         <div
             v-for="toast in toasts"
@@ -428,7 +447,7 @@ onUnmounted(() => {
                 'text-bg-danger text-white': toast.type === 'danger',
                 'text-bg-secondary text-white': toast.type === 'secondary'
             }"
-            style="pointer-events: auto; max-width: 380px; min-width: 260px;"
+            style="pointer-events: auto; max-width: calc(100vw - 1rem); min-width: 240px;"
             role="alert"
             aria-live="assertive"
             aria-atomic="true"

@@ -363,11 +363,11 @@ onMounted(() => {
 </script>
 
 <template>
-    <section class="note-editor flex-grow-1 d-flex flex-column p-3 h-100 overflow-hidden bg-body">
+    <section class="note-editor flex-grow-1 d-flex flex-column p-2 p-sm-3 h-100 overflow-hidden bg-body">
         <!-- Rich Text Formatting Toolbar -->
-        <div v-if="note" class="note-formatting-toolbar pb-2 mb-2 border-bottom d-flex align-items-center flex-wrap gap-2">
+        <div v-if="note" class="note-formatting-toolbar pb-2 mb-2 border-bottom d-flex align-items-center gap-2 overflow-x-auto flex-nowrap flex-md-wrap">
             <!-- Bold, Italic, Underline toggles -->
-            <div class="btn-group btn-group-sm" role="group" aria-label="Text formatting">
+            <div class="btn-group btn-group-sm flex-shrink-0" role="group" aria-label="Text formatting">
                 <button
                     type="button"
                     class="btn"
@@ -403,7 +403,7 @@ onMounted(() => {
             <div class="vr my-1 d-none d-sm-block"></div>
 
             <!-- Font Family selector -->
-            <div class="d-flex align-items-center gap-1">
+            <div class="d-flex align-items-center gap-1 flex-shrink-0">
                 <label for="font-family-select" class="form-label mb-0 small text-secondary">Font:</label>
                 <select
                     id="font-family-select"
@@ -428,7 +428,7 @@ onMounted(() => {
             <div class="vr my-1 d-none d-sm-block"></div>
 
             <!-- Font Size number input with scroll wheel & typing -->
-            <div class="d-flex align-items-center gap-1">
+            <div class="d-flex align-items-center gap-1 flex-shrink-0">
                 <label for="font-size-input" class="form-label mb-0 small text-secondary">Size:</label>
                 <div class="input-group input-group-sm" style="width: 82px;">
                     <input
@@ -451,7 +451,7 @@ onMounted(() => {
             <div class="vr my-1 d-none d-sm-block"></div>
 
             <!-- Text Color selector + custom color picker -->
-            <div class="d-flex align-items-center gap-1">
+            <div class="d-flex align-items-center gap-1 flex-shrink-0">
                 <label for="color-select" class="form-label mb-0 small text-secondary">Color:</label>
                 <select
                     id="color-select"
@@ -497,7 +497,7 @@ onMounted(() => {
             <div class="vr my-1 d-none d-sm-block"></div>
 
             <!-- Highlight (Background) selector -->
-            <div class="d-flex align-items-center gap-1">
+            <div class="d-flex align-items-center gap-1 flex-shrink-0">
                 <label for="highlight-select" class="form-label mb-0 small text-secondary">Highlight:</label>
                 <select
                     id="highlight-select"
@@ -522,7 +522,7 @@ onMounted(() => {
             <!-- Clear formatting button -->
             <button
                 type="button"
-                class="btn btn-sm btn-outline-secondary ms-auto"
+                class="btn btn-sm btn-outline-secondary ms-auto flex-shrink-0"
                 @mousedown.prevent="clearFormatting"
                 title="Clear formatting"
             >
@@ -549,11 +549,21 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.note-formatting-toolbar {
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+}
+
+.note-formatting-toolbar::-webkit-scrollbar {
+    height: 4px;
+}
+
 .note-editor-content {
     white-space: pre-wrap;
     word-break: break-word;
     outline: none !important;
     min-height: 200px;
+    font-size: 16px;
 }
 
 .note-editor-content:empty::before,
