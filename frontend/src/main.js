@@ -10,7 +10,7 @@ const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ||
   ''
 
 app.use(clerkPlugin, {
-  publishableKey: publishableKey || 'pk_test_placeholder'
+  publishableKey: publishableKey,
 })
 
 app.mount('#app')

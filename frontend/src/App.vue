@@ -1,10 +1,11 @@
 <script setup>
-import { ref, computed, watch, onMounted } from "vue"
+import { ref, computed, watch, onMounted, onUnmounted } from "vue"
 import { useAuth, SignInButton, SignUpButton } from "@clerk/vue"
 
 import NoteEditor from './components/NoteEditor.vue'
 import NoteTitle from './components/NoteTitle.vue'
 import NoteList from './components/NoteList.vue'
+import DevLog from './components/DevLog.vue'
 
 const { isSignedIn, isLoaded, getToken } = useAuth()
 
@@ -17,7 +18,47 @@ const notes = ref([])
 const selectedNote = ref(null)
 const theme = ref(localStorage.getItem('theme') || 'light')
 
+// Route/View management
+const currentView = ref(
+    typeof window !== 'undefined' && (window.location.pathname === '/devlog' || window.location.pathname === '/dev-log')
+        ? 'devlog'
+        : 'home'
+)
+
+// Toast Notifications state
+const toasts = ref([])
+const hasShownAutoSaveNotice = ref(false)
+let autoSaveInterval = null
+
 const API_BASE = import.meta.env.VITE_API_URL ?? (typeof window !== 'undefined' && window.location.port === "5173" ? "http://localhost:8080" : "")
+
+function addToast(message, type = 'info', duration = 4000) {
+    const id = Date.now() + Math.random()
+    toasts.value.push({ id, message, type })
+    if (duration > 0) {
+        setTimeout(() => {
+            removeToast(id)
+        }, duration)
+    }
+}
+
+function removeToast(id) {
+    toasts.value = toasts.value.filter(t => t.id !== id)
+}
+
+function navigateToDevLog() {
+    currentView.value = 'devlog'
+    if (typeof window !== 'undefined' && window.location.pathname !== '/devlog') {
+        window.history.pushState(null, '', '/devlog')
+    }
+}
+
+function navigateHome() {
+    currentView.value = 'home'
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+        window.history.pushState(null, '', '/')
+    }
+}
 
 async function authHeaders(extraHeaders = {}) {
     const headers = { ...extraHeaders }
@@ -67,7 +108,7 @@ function updateTitle(title) {
     }
 }
 
-async function saveNote() {
+async function saveNote(isAutoSave = false) {
     if (!selectedNote.value) return
     const note = selectedNote.value
     try {
@@ -88,9 +129,19 @@ async function saveNote() {
                 notes.value[index] = updatedNote
             }
             selectedNote.value = updatedNote
+
+            if (isAutoSave) {
+                const timeString = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+                addToast(`💾 Note automatically saved at ${timeString}`, 'success', 3500)
+            } else {
+                addToast('Note saved successfully', 'success', 2500)
+            }
         }
     } catch (e) {
         console.error("Failed to save note:", e)
+        if (!isAutoSave) {
+            addToast("Failed to save note", "danger", 3500)
+        }
     }
 }
 
@@ -105,6 +156,7 @@ async function createNote() {
             const newNote = await response.json()
             notes.value.unshift(newNote)
             selectedNote.value = newNote
+            addToast("Created new note", "info", 2000)
         }
     } catch (e) {
         console.error("Failed to create note:", e)
@@ -124,6 +176,7 @@ async function deleteNote(id) {
             if (selectedNote.value && selectedNote.value.id === id) {
                 selectedNote.value = notes.value.length > 0 ? notes.value[0] : null
             }
+            addToast("Note deleted", "secondary", 2000)
         }
     } catch (e) {
         console.error("Failed to delete note:", e)
@@ -136,10 +189,41 @@ function toggleTheme() {
     localStorage.setItem('theme', theme.value)
 }
 
+function startAutoSaveTimer() {
+    stopAutoSaveTimer()
+    // Run auto-save once every 60 seconds (1 minute)
+    autoSaveInterval = setInterval(() => {
+        if (isSignedIn.value && selectedNote.value) {
+            saveNote(true)
+        }
+    }, 60000)
+}
+
+function stopAutoSaveTimer() {
+    if (autoSaveInterval) {
+        clearInterval(autoSaveInterval)
+        autoSaveInterval = null
+    }
+}
+
+function handleNotesScreenEnter() {
+    getNotes()
+    startAutoSaveTimer()
+    if (!hasShownAutoSaveNotice.value) {
+        hasShownAutoSaveNotice.value = true
+        addToast(
+            "Notes automatically save every minute, but make sure to manually save before closing the tab.",
+            "info",
+            8000
+        )
+    }
+}
+
 watch(isSignedIn, (signedIn) => {
     if (signedIn) {
-        getNotes()
+        handleNotesScreenEnter()
     } else {
+        stopAutoSaveTimer()
         notes.value = []
         selectedNote.value = null
     }
@@ -147,9 +231,24 @@ watch(isSignedIn, (signedIn) => {
 
 onMounted(() => {
     document.documentElement.setAttribute('data-bs-theme', theme.value)
-    if (isSignedIn.value) {
-        getNotes()
+
+    if (typeof window !== 'undefined') {
+        window.addEventListener('popstate', () => {
+            if (window.location.pathname === '/devlog' || window.location.pathname === '/dev-log') {
+                currentView.value = 'devlog'
+            } else {
+                currentView.value = 'home'
+            }
+        })
     }
+
+    if (isSignedIn.value) {
+        handleNotesScreenEnter()
+    }
+})
+
+onUnmounted(() => {
+    stopAutoSaveTimer()
 })
 </script>
 
@@ -161,8 +260,17 @@ onMounted(() => {
         </div>
     </div>
 
+    <!-- Dev Log View -->
+    <DevLog
+        v-else-if="currentView === 'devlog'"
+        :is-signed-in="isSignedIn"
+        :theme="theme"
+        @navigate-home="navigateHome"
+        @toggle-theme="toggleTheme"
+    />
+
     <!-- Authenticated App View -->
-    <main v-else-if="isSignedIn" class="notes-app d-flex vh-100 overflow-hidden bg-body text-body">
+    <main v-else-if="isSignedIn" class="notes-app d-flex vh-100 overflow-hidden bg-body text-body position-relative">
         <NoteList
             :notes="notes"
             :selected-id="selectedNote?.id"
@@ -171,20 +279,29 @@ onMounted(() => {
             @create-note="createNote"
             @delete-note="deleteNote"
             @toggle-theme="toggleTheme"
+            @open-devlog="navigateToDevLog"
         />
         <div class="d-flex flex-column flex-grow-1 h-100 overflow-hidden bg-body">
-            <NoteTitle :note="selectedNote" @update-title="updateTitle" @save-note="saveNote" />
+            <NoteTitle :note="selectedNote" @update-title="updateTitle" @save-note="saveNote(false)" />
             <NoteEditor :note="selectedNote" @update-content="updateContent" />
         </div>
     </main>
 
     <!-- Landing Page (Signed Out) -->
-    <div v-else class="landing-page min-vh-100 d-flex flex-column bg-body text-body">
+    <div v-else class="landing-page min-vh-100 d-flex flex-column bg-body text-body position-relative">
         <!-- Landing Navbar -->
         <nav class="navbar border-bottom px-4 py-3 bg-body sticky-top">
             <div class="container-fluid d-flex justify-content-between align-items-center">
                 <span class="navbar-brand fw-bold fs-4 mb-0">📝 Paper Note</span>
                 <div class="d-flex align-items-center gap-2">
+                    <button
+                        class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
+                        @click="navigateToDevLog"
+                        title="View monthly developer log"
+                    >
+                        <span>📋</span>
+                        <span>Dev Log</span>
+                    </button>
                     <button
                         class="btn btn-sm btn-outline-secondary"
                         :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
@@ -211,17 +328,25 @@ onMounted(() => {
                     <small>Please set your Clerk keys in the <code>.env</code> file (<code>CLERK_SECRET_KEY</code> and <code>VITE_CLERK_PUBLISHABLE_KEY</code>) to enable sign in.</small>
                 </div>
 
-                <div class="mb-4">
+                <div class="mb-4 d-flex justify-content-center gap-2 flex-wrap">
                     <span class="badge text-bg-primary-subtle text-primary-emphasis px-3 py-2 rounded-pill fs-6">
                         Minimal • Fast • Secure
                     </span>
+                    <button
+                        type="button"
+                        class="btn btn-sm badge text-bg-secondary-subtle text-secondary-emphasis px-3 py-2 rounded-pill fs-6 border-0 shadow-sm d-flex align-items-center gap-1"
+                        @click="navigateToDevLog"
+                        title="View our monthly developer log"
+                    >
+                        <span>🚀 What's new in October? Check the Dev Log &rarr;</span>
+                    </button>
                 </div>
 
                 <h1 class="display-3 fw-bold mb-3 tracking-tight">
                     Distraction-Free Note Taking
                 </h1>
                 <p class="lead text-secondary mx-auto mb-5" style="max-width: 620px;">
-                    Capture thoughts, write notes, and organize your work seamlessly. Built with instant syncing, light &amp; dark themes, and privacy-first authentication.
+                    Capture thoughts, write notes, and organize your work seamlessly. Built with instant syncing, rich text customization, automatic saving, and privacy-first authentication.
                 </p>
 
                 <div class="d-flex justify-content-center gap-3 mb-5">
@@ -245,7 +370,7 @@ onMounted(() => {
                                 <div class="fs-2 mb-2">⚡</div>
                                 <h5 class="card-title fw-bold">Instant &amp; Fast</h5>
                                 <p class="card-text text-secondary small">
-                                    Fast note creation, seamless editing, and auto-saving so you never lose your train of thought.
+                                    Fast note creation, seamless editing, and minute-by-minute auto-saving so you never lose your work.
                                 </p>
                             </div>
                         </div>
@@ -254,9 +379,9 @@ onMounted(() => {
                         <div class="card h-100 border bg-body-tertiary shadow-sm p-3">
                             <div class="card-body">
                                 <div class="fs-2 mb-2">🎨</div>
-                                <h5 class="card-title fw-bold">Adaptive Themes</h5>
+                                <h5 class="card-title fw-bold">Full Customization</h5>
                                 <p class="card-text text-secondary small">
-                                    Clean, eye-friendly light and dark modes designed to make reading and writing comfortable at any time of day.
+                                    Choose custom font sizes, web-safe typography, named colors, and highlights without heavy dependencies.
                                 </p>
                             </div>
                         </div>
@@ -277,8 +402,48 @@ onMounted(() => {
         </main>
 
         <!-- Landing Footer -->
-        <footer class="border-top py-3 text-center text-secondary small bg-body">
-            Paper Note &copy; 2026 • Simple, distraction-free notes.
+        <footer class="border-top py-3 text-center text-secondary small bg-body d-flex justify-content-center align-items-center gap-3">
+            <span>Paper Note &copy; 2026 • Simple, distraction-free notes.</span>
+            <span>&bull;</span>
+            <button class="btn btn-link btn-sm text-secondary text-decoration-none p-0" @click="navigateToDevLog">
+                📋 Dev Log
+            </button>
         </footer>
+    </div>
+
+    <!-- Non-invasive Toast Notifications Container -->
+    <div
+        class="toast-container position-fixed bottom-0 end-0 p-3"
+        style="z-index: 1090; pointer-events: none;"
+    >
+        <div
+            v-for="toast in toasts"
+            :key="toast.id"
+            class="toast show align-items-center border shadow mb-2"
+            :class="{
+                'text-bg-success text-white': toast.type === 'success',
+                'text-bg-info text-dark': toast.type === 'info',
+                'text-bg-danger text-white': toast.type === 'danger',
+                'text-bg-secondary text-white': toast.type === 'secondary'
+            }"
+            style="pointer-events: auto; max-width: 380px; min-width: 260px;"
+            role="alert"
+            aria-live="assertive"
+            aria-atomic="true"
+        >
+            <div class="d-flex">
+                <div class="toast-body small py-2 px-3 d-flex align-items-center gap-2">
+                    <span v-if="toast.type === 'info'">ℹ️</span>
+                    <span>{{ toast.message }}</span>
+                </div>
+                <button
+                    type="button"
+                    class="btn-close me-2 m-auto"
+                    :class="{ 'btn-close-white': toast.type !== 'info' }"
+                    aria-label="Close"
+                    @click="removeToast(toast.id)"
+                ></button>
+            </div>
+        </div>
     </div>
 </template>

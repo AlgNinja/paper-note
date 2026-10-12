@@ -67,6 +67,28 @@ const setup = async () => {
 
 setup()
 
+app.get("/api/health", async (req, res) => {
+    try {
+        await pool.query("SELECT 1")
+        res.status(200).json({
+            status: "ok",
+            uptime: process.uptime(),
+            timestamp: new Date().toISOString(),
+            database: "connected"
+        })
+    } catch (e) {
+        res.status(503).json({
+            status: "error",
+            uptime: process.uptime(),
+            timestamp: new Date().toISOString(),
+            database: "disconnected",
+            error: e.message
+        })
+    }
+})
+
+app.get("/health", (req, res) => res.redirect("/api/health"))
+
 app.get("/api/notes", requireUser, async (req, res) => {
     try {
         const result = await pool.query(

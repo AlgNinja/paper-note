@@ -10,7 +10,7 @@ defineProps({
     }
 })
 
-const emit = defineEmits(["select-note", "create-note", "delete-note", "toggle-theme"])
+const emit = defineEmits(["select-note", "create-note", "delete-note", "toggle-theme", "open-devlog"])
 </script>
 
 <template>
@@ -52,6 +52,17 @@ const emit = defineEmits(["select-note", "create-note", "delete-note", "toggle-t
             <div v-if="notes && notes.length === 0" class="p-3 text-secondary text-center small">
                 No notes yet
             </div>
+        </div>
+        <div class="p-2 px-3 border-top d-flex align-items-center justify-content-between text-secondary small bg-body-tertiary">
+            <button
+                class="btn btn-link btn-sm text-secondary text-decoration-none p-0 d-flex align-items-center gap-1"
+                @click="emit('open-devlog')"
+                title="View Developer Log"
+            >
+                <span>📋</span>
+                <span>Dev Log</span>
+            </button>
+            <span class="text-secondary opacity-50" style="font-size: 0.75rem;">v0.2.0</span>
         </div>
     </aside>
 </template>
