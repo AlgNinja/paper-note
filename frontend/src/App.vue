@@ -10,7 +10,9 @@ import DevLog from './components/DevLog.vue'
 const { isSignedIn, isLoaded, getToken } = useAuth()
 
 const hasClerkKey = computed(() => {
-    const key = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || import.meta.env.CLERK_PUBLISHABLE_KEY
+    const key = (typeof window !== 'undefined' && window.__CLERK_PUBLISHABLE_KEY__) ||
+        import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ||
+        import.meta.env.CLERK_PUBLISHABLE_KEY
     return !!(key && !key.includes("your_clerk_publishable_key"))
 })
 

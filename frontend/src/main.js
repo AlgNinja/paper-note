@@ -5,7 +5,9 @@ import App from './App.vue'
 
 const app = createApp(App)
 
-const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ||
+const publishableKey =
+  (typeof window !== 'undefined' && window.__CLERK_PUBLISHABLE_KEY__) ||
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ||
   import.meta.env.CLERK_PUBLISHABLE_KEY ||
   ''
 

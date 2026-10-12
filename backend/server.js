@@ -1,6 +1,7 @@
 const express = require("express")
 const cors = require("cors")
 const path = require("path")
+const fs = require("fs")
 require("dotenv").config({ path: path.resolve(__dirname, "../.env") })
 const { clerkMiddleware, getAuth } = require("@clerk/express")
 
@@ -37,13 +38,26 @@ const requireUser = (req, res, next) => {
     next()
 }
 
-const pool = new Pool({
-    host: process.env.POSTGRES_HOST || "localhost",
-    port: process.env.POSTGRES_PORT || "5432",
-    database: process.env.POSTGRES_DB,
-    user: process.env.POSTGRES_USER,
-    password: process.env.POSTGRES_PASSWORD
-})
+const isRemoteDb = (process.env.POSTGRES_HOST && process.env.POSTGRES_HOST !== "localhost" && process.env.POSTGRES_HOST !== "postgres") || !!process.env.DATABASE_URL
+const sslConfig = process.env.DATABASE_SSL === "false"
+    ? false
+    : (isRemoteDb || process.env.POSTGRES_SSL === "true" ? { rejectUnauthorized: false } : false)
+
+const pool = new Pool(
+    process.env.DATABASE_URL
+        ? {
+            connectionString: process.env.DATABASE_URL,
+            ssl: sslConfig
+          }
+        : {
+            host: process.env.POSTGRES_HOST || "localhost",
+            port: process.env.POSTGRES_PORT || "5432",
+            database: process.env.POSTGRES_DB,
+            user: process.env.POSTGRES_USER,
+            password: process.env.POSTGRES_PASSWORD,
+            ssl: sslConfig
+          }
+)
 
 const setup = async () => {
     try {
@@ -169,12 +183,20 @@ app.delete("/api/notes/:id", requireUser, async (req, res) => {
 })
 
 const distPath = path.resolve(__dirname, "../frontend/dist")
-app.use(express.static(distPath))
+app.use(express.static(distPath, { index: false }))
 
 app.use((req, res, next) => {
     if (req.path.startsWith("/api")) return next()
-    res.sendFile(path.join(distPath, "index.html"), (err) => {
-        if (err) next()
+    const indexPath = path.join(distPath, "index.html")
+    fs.readFile(indexPath, "utf8", (err, html) => {
+        if (err) return next()
+        const clerkKey = process.env.VITE_CLERK_PUBLISHABLE_KEY || process.env.CLERK_PUBLISHABLE_KEY || ""
+        const injected = html.replace(
+            "<head>",
+            `<head><script>window.__CLERK_PUBLISHABLE_KEY__ = ${JSON.stringify(clerkKey)};</script>`
+        )
+        res.setHeader("Content-Type", "text/html")
+        res.send(injected)
     })
 })
 
